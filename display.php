@@ -1,35 +1,38 @@
 <?php
     include_once('./connect.php');
 
-    // print_r($_FILES['file']);
-
     if(isset($_POST['submit'])) {
         $name = $_POST['name'];
         $phone = $_POST['phone'];
         $file = $_FILES['file'];
-        $file_name = $file['name'];
-        $file_tmp = $file['tmp_name'];
+        
+        $uploadDirectory = 'images/';
+        
+        $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $uploadFileName = generateUniqueFileName($extension);
+    
+        $uploadFilePath = $uploadDirectory . $uploadFileName;
 
-        $file_name_separate = explode('.', $file_name);
-        $file_name_extension = end($file_name_separate);
-
-        $expected_extensios = array('jpeg', 'jpg', 'png');
-        if(in_array($file_name_extension, $expected_extensios)) {
-            $upload_img = 'images/'.$file_name;
-
-            move_uploaded_file($file_tmp, $upload_img);
-            
-            $sql = "insert into `users` (name, phone, image) values ('$name', '$phone', '$upload_img')";
-            $resuts = mysqli_query($con, $sql);
-            if($resuts) {
+        // print_r($uploadFilePath);
+    
+        if(move_uploaded_file($file['tmp_name'], $uploadFilePath)) {
+            $sql = "INSERT INTO `users` (name, phone, image) VALUES ('$name', '$phone', '$uploadFileName')";
+            $results = mysqli_query($con, $sql);
+            if($results) {
                 echo "Data inserted successfully";
             } else {
-                die(mysqli_errno($con));
+                echo "Error: " . mysqli_error($con);
             }
-
+        } else {
+            echo "File upload failed";
         }
-
-        print_r($file_name_extension);
+    }
+    
+    function generateUniqueFileName($extension) {
+        $timestamp = time();
+        $randomString = bin2hex(random_bytes(4));
+        $fileName = $timestamp . '_' . $randomString . '.' . $extension;
+        return $fileName;
     }
 ?>
 
@@ -56,7 +59,7 @@
                 <?php
                     $sql = "Select * from `users`";
                     $results = mysqli_query($con, $sql);
-                    while($row = mysqli_fetch_assoc($results)){
+                    while($row = mysqli_fetch_assoc($results)){                        
                         $id = $row['id'];
                         $name = $row['name'];
                         $phone = $row['phone'];
@@ -67,7 +70,7 @@
                                 <th scope="row">'.$id.'</th>
                                 <td>'.$name.'</td>
                                 <td>'.$phone.'</td>
-                                <td><img src='.$image.' /></td>
+                                <td><img src=images/'.$image.' /></td>
                             </tr>
                         ';
                     }
